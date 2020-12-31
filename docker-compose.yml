@@ -1,0 +1,17 @@
+version : '3'
+
+services: 
+
+  database:
+    build: ./database
+    volumes:
+    - ./database:/data
+
+  web-app:
+    build: ./backend
+    volumes: 
+    - ./backend:/code
+    ports:
+    - 9095:9095
+    depends_on: 
+    - database
