@@ -1,4 +1,4 @@
-The purpose of the project is a full-stack web application CRUD operations on Acronym. 
+The purpose of the project is a full-stack web application for CRUD operations on Acronyms. 
 
 ## Prerequisites
 [Download](https://www.oracle.com/technetwork/database/database-technologies/express-edition/downloads/index.html) the RPM from Oracle Technology Network and save to files folder under ./database/files
