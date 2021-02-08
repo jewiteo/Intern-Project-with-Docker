@@ -11,8 +11,8 @@
 	<groupId>com.intern</groupId>
 	<artifactId>test</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>test</name>
-	<description>Demo project for Spring Boot</description>
+	<name>intern-project</name>
+	<description>Intern Project</description>
 
 	<properties>
 		<java.version>11</java.version>
@@ -72,7 +72,7 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <id>install node and npm</id>
+                        <id>install node and yarn</id>
                         <goals>
                             <goal>install-node-and-yarn</goal>
                         </goals>
@@ -95,15 +95,15 @@
 					        <arguments>install</arguments>
 					    </configuration>
 					</execution>
-                    <execution>
-                        <id>npm run build</id>
-                        <goals>
-                            <goal>npm</goal>
-                        </goals>
-                        <configuration>
-                            <arguments>run build</arguments>
-                        </configuration>
-                    </execution>
+                   <execution>
+	                   <id>yarn build</id>
+	                   <goals>
+		                   <goal>yarn</goal>
+	                   </goals>
+	                   <configuration>
+	                   		<arguments>run build</arguments>
+	                   </configuration>
+                   </execution>
                 </executions>
             </plugin>
 		

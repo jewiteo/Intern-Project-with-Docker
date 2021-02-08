@@ -4,14 +4,32 @@ services:
 
   database:
     build: ./database
+    ports:
+    - 32218:1521
     volumes:
-    - ./database:/data
+    - oracledb:/data/db
+    networks:
+      mynetwork:
+        aliases:
+        - "oracleDB"
 
   web-app:
-    build: ./backend
+    build:
+      context: ./backend
+      args: 
+        JAR_FILE: target/*.jar
     volumes: 
     - ./backend:/code
     ports:
     - 9095:9095
     depends_on: 
     - database
+    networks:
+    - mynetwork
+  
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  oracledb:

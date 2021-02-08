@@ -1,27 +1,30 @@
+//version: 01
 import React, { useEffect, useState } from 'react';
 
 import {
     EuiBasicTable,
     EuiSpacer,
     EuiFieldSearch,
-    EuiForm,
     EuiFormRow,
     EuiFieldText,
     EuiButton,
     EuiFlexItem,
     EuiFlexGroup,
     EuiSelect,
+    EuiErrorBoundary,
+    EuiGlobalToastList,
 } from '@elastic/eui';
 
 var languages = ["ENGLISH", "CHINESE", "MALAY", "TAMIL", "KOREAN", "THAI"];
 var oldSearchId;
+var toastId = 0;
 
 function Datatable() {
     const [acronyms, setAcronyms] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [pageIndex, setPageIndex] = useState(0);
     const [pageSize, setPageSize] = useState(10);
-    const [totalItemCount, setTotalItemCount] = useState(5); //can put query here
+    const [totalItemCount, setTotalItemCount] = useState(0);
     const [searchLoading, setSearchLoading] = useState(false);
     const [editingId, setEditingId] = useState(0);
 
@@ -34,32 +37,19 @@ function Datatable() {
     const [editFull_Term, setEditFull_Term] = useState(() => document.createElement('input'));
     const [editRemark, setEditRemark] = useState(() => document.createElement('input'));
 
-    //var editAcronym = document.createElement('input');
-    //var editFull_Term = document.createElement('input');
-    //var editRemark = document.createElement('input');
+    const [hasError, setHasError] = useState(null);
 
-    /*constructor(props) {
-        super(props);
-        this.state = {
-            acronyms: [],
-            searchTerm: '',
-
-            pageIndex: 0,
-            pageSize: 10,
-            totalItemCount: 0,
-
-            searchLoading: false,
-            isMounted: false,
-        };
-
-    } */
+    const [toasts, setToasts] = useState([]);
 
     useEffect(() => {
 
         const params = getRequestParams(searchTerm, pageIndex, pageSize);
         retrieveAcronym(params);
 
-    },[searchTerm,pageIndex,pageSize]); 
+        const interval = setInterval(() => retrieveAcronym(params), 3000);
+        return () => clearInterval(interval);
+
+    }, [searchTerm, pageIndex, pageSize]);
 
 
 
@@ -67,11 +57,19 @@ function Datatable() {
 
         if (params.search) {
             if (languages.includes(params.search.toUpperCase())) {
-                //console.log("Found languages");
+
                 const response = await fetch('/api/acronym/all/language/' + params.search.toUpperCase() +
                     '?offset=' + params.offset + '&limit=' + params.pageSize);
+                if (!response.ok) {
+                    setHasError("Error: " + response.statusText);
+                    throw new Error(response.statusText);
+                }
                 const data = await response.json();
                 const responseSize = await fetch('/api/acronym/all/language/' + params.search.toUpperCase() + '/count');
+                if (!responseSize.ok) {
+                    setHasError("Error: " + responseSize.statusText);
+                    throw new Error(responseSize.statusText);
+                }
                 const totalRecord = await responseSize.json();
 
                 setAcronyms(data);
@@ -79,8 +77,16 @@ function Datatable() {
             } else {
                 const response = await fetch('/api/acronym/all/' + params.search +
                     '?offset=' + params.offset + '&limit=' + params.pageSize);
+                if (!response.ok) {
+                    setHasError("Error: " + response.statusText);
+                    throw new Error(response.statusText);
+                }
                 const data = await response.json();
                 const responseSize = await fetch('/api/acronym/all/' + params.search + '/count');
+                if (!responseSize.ok) {
+                    setHasError("Error: " + responseSize.statusText);
+                    throw new Error(responseSize.statusText);
+                }
                 const totalRecord = await responseSize.json();
 
                 setAcronyms(data);
@@ -88,13 +94,23 @@ function Datatable() {
             }
         } else {
             const response = await fetch('/api/acronym/all?offset=' + params.offset + '&limit=' + params.pageSize);
+            if (!response.ok) {
+                setHasError("Error: " + response.statusText);
+                throw new Error(response.statusText);
+            }
             const data = await response.json();
             const responseSize = await fetch('/api/acronym/all/count');
+            if (!responseSize.ok) {
+                setHasError("Error: " + responseSize.statusText);
+                throw new Error(responseSize.statusText);
+            }
             const totalRecord = await responseSize.json();
 
             setAcronyms(data);
             setTotalItemCount(totalRecord);
         }
+
+        setHasError(null);
     }
 
     function getRequestParams(searchTerm, pageIndex, pageSize) {
@@ -122,14 +138,6 @@ function Datatable() {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             }
-        });
-
-        await fetch('api/acronym/changes/' + id, {
-            method: 'DELETE',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
         });
 
         if (acronyms.length === 1 && pageIndex !== 0) {
@@ -173,6 +181,7 @@ function Datatable() {
 
     const addAcronymForm = () => {
 
+
         return (
             <EuiFlexGroup>
                 <EuiFlexItem>
@@ -215,18 +224,66 @@ function Datatable() {
                 <EuiFlexItem grow={false}>
                     <EuiFormRow hasEmptyLabelSpace>
                         <EuiButton onClick={() => {
-                            console.log(acronymInput.value);
                             console.log(full_termInput.value);
                             console.log(remarkInput.value);
                             console.log(language.value);
 
-                            addNewAcronym(acronymInput.value, full_termInput.value, remarkInput.value, language.value);
+                            if (hasError) {
+                                const toast = {
+                                    id: `"${toastId++}"`,
+                                    title: "Error adding record",
+                                    color: "danger",
+                                    iconType: "alert",
+                                    text: (<p>
+                                        Problem connecting to database. Record was not added.
+                                    </p>)
+                                }
+                                setToasts(toasts.concat(toast));
+                            } else {
+                                if (acronymInput.value.length < 20 && acronymInput.value.length > 0 &&
+                                    full_termInput.value.length < 100 && full_termInput.value.length > 0 &&
+                                    remarkInput.value.length < 250) {
 
-                            acronymInput.value = "";
-                            full_termInput.value = "";
-                            remarkInput.value = "";
-                            language.value = "ENGLISH";
+                                    addNewAcronym(acronymInput.value, full_termInput.value, remarkInput.value, language.value);
+                                    acronymInput.value = "";
+                                    full_termInput.value = "";
+                                    remarkInput.value = "";
+                                    language.value = "ENGLISH";
 
+                                    const toast = {
+                                        id: `"${toastId++}"`,
+                                        title: "Successfully added a new record",
+                                        color: "success",
+                                        iconType: "plusInCircle",
+                                    }
+                                    setToasts(toasts.concat(toast));
+
+                                } else {
+                                    if (acronymInput.value.length == 0 || full_termInput.value.length == 0) {
+                                        const toast = {
+                                            id: `"${toastId++}"`,
+                                            title: "Error adding record",
+                                            color: "danger",
+                                            iconType: "alert",
+                                            text: (<p>
+                                                Missing input in at least one field.
+                                            </p>)
+                                        }
+                                        setToasts(toasts.concat(toast));
+                                    } else {
+                                        const toast = {
+                                            id: `"${toastId + 1}"`,
+                                            title: "Error adding record",
+                                            color: "danger",
+                                            iconType: "alert",
+                                            text: (<p>
+                                                Inputs are too long, please shorten it
+                                            </p>)
+                                        }
+                                        setToasts(toasts.concat(toast));
+                                    }
+                                }
+                            }
                         }}>Save</EuiButton>
                     </EuiFormRow>
                 </EuiFlexItem>
@@ -235,79 +292,98 @@ function Datatable() {
     }
 
     let actions = null;
-        actions = [
-            {
-                name: (item) => (item.id ? 'Delete' : 'Remove'),
-                icon: 'trash',
-                color: 'danger',
-                type: 'icon',
-                onClick: (item) => {
-                    console.log(item.id);
-                    remove(item.id);
+    actions = [
+        {
+            name: (item) => (item.id ? 'Delete' : 'Remove'),
+            icon: 'trash',
+            color: 'danger',
+            type: 'icon',
+            onClick: (item) => {
+                console.log(item.id);
+                remove(item.id);
+                const toast = {
+                    id: `"${toastId++}"`,
+                    title: "A record has been deleted",
+                    color: "warning",
+                    iconType: "minusInCircle",
+                }
+                setToasts(toasts.concat(toast));
+            }
+        },
+        {
+            name: 'Edit',
+            //isPrimary: true,
+            icon: 'pencil',
+            type: 'icon',
+            onClick: (item) => {
+                console.log(item);
+                setEditingId(item.id);
+            },
+            available: (item) => {
+                if (item.id == editingId) {
+                    return false;
+                } else {
+                    return true;
                 }
             },
-            {
-                name: 'Edit',
-                //isPrimary: true,
-                icon: 'pencil',
-                type: 'icon',
-                onClick: (item) => {
-                    console.log(item);
-                    setEditingId(item.id);
-                },
-                available: (item) => {
-                    if (item.id == editingId) {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                },
-                'data-test-subj': 'action-edit',
+            'data-test-subj': 'action-edit',
+        },
+        {
+            name: 'Save',
+            icon: 'pencil',
+            type: 'icon',
+            available: (item) => {
+                if (item.id == editingId) {
+                    return true;
+                } else {
+                    return false;
+                }
             },
-            {
-                name: 'Save',
-                icon: 'pencil',
-                type: 'icon',
-                available: (item) => {
-                    if (item.id == editingId) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                },
-                onClick: (item) => {
-                    console.log("This should save:");
-                    console.log("Editted Acronym: " + editAcronym.value);
-                    console.log("Editted full term: " + editFull_Term.value);
-                    console.log("Editted remark: " + editRemark.value);
+            onClick: (item) => {
 
-                    var updatedAcronym = {
-                        acronym: editAcronym.value || '',
-                        full_term: editFull_Term.value || '',
-                        remark: editRemark.value || '',
-                        id: item.id,
-                        language: item.language,
-                        creator: item.creator,
-                    }
+               /* 
+                console.log("Editted Acronym: " + editAcronym.value);
+                console.log("Editted full term: " + editFull_Term.value);
+                console.log("Editted remark: " + editRemark.value);
+                */
 
-                    fetch('api/acronym/all/' + item.id, {
-                        method: 'PUT',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(updatedAcronym),
-                    });
+                var updatedAcronym = {
+                    acronym: editAcronym.value || '',
+                    full_term: editFull_Term.value || '',
+                    remark: editRemark.value || '',
+                    id: item.id,
+                    language: item.language,
+                    creator: item.creator,
+                }
 
-                    let updatedAcronymIndex = acronyms.findIndex(i => i.id == item.id);
-                    let updatedData = acronyms;
-                    updatedData[updatedAcronymIndex] = updatedAcronym;
-                    setAcronyms(updatedData);
-                    setEditingId(0);
-                } 
+                fetch('api/acronym/all/' + item.id, {
+                    method: 'PUT',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedAcronym),
+                });
+
+                let updatedAcronymIndex = acronyms.findIndex(i => i.id == item.id);
+                let updatedData = acronyms;
+                updatedData[updatedAcronymIndex] = updatedAcronym;
+                setAcronyms(updatedData);
+                setEditingId(0);
+
+                const toast = {
+                    id: `"${toastId++}"`,
+                    title: "Successfully editted record",
+                    color: "success",
+                    iconType: "check",
+                }
+                setToasts(toasts.concat(toast));
+
+
             }
+        }
 
-        ];
+    ];
 
     const pagination = {
         pageIndex,
@@ -328,11 +404,8 @@ function Datatable() {
             console.log(tempSearchTerm);
             setSearchTerm(tempSearchTerm);
             setPageIndex(0);
-
-
-            //const formattedParams = getRequestParams(searchTerm, pageIndex, pageSize);
-            //retrieveAcronym(formattedParams);
             setSearchLoading(false);
+
         }, 1000);
 
         oldSearchId = onSearchTerm;
@@ -340,17 +413,11 @@ function Datatable() {
 
     const onTableChange = ({ page = {} }) => {
 
-    //if (isMounted) {
-
         const { index: pageIndex, size: pageSize } = page;
-
-        /*const params = getRequestParams(searchTerm, pageIndex, pageSize);
-        retrieveAcronym(params);
-        */
 
         setPageIndex(pageIndex);
         setPageSize(pageSize);
-    //}
+
 
     };
 
@@ -361,11 +428,12 @@ function Datatable() {
             render: (value, record) => {
 
                 if (record.id === editingId) {
-
                     return (<EuiFieldText inputRef={input => {
-                        //editAcronym = input;
-                        setEditAcronym(input);
-                        if (editingId == record.id)
+                        if (input !== null) {
+                            setEditAcronym(input);
+                        }
+
+                        if (editingId === record.id)
                             editAcronym.defaultValue = value || "";
                     }} />);
                 }
@@ -381,8 +449,10 @@ function Datatable() {
                 if (record.id == editingId) {
 
                     return (<EuiFieldText inputRef={input => {
-                        //editFull_Term = input;
-                        setEditFull_Term(input);
+                        if (input !== null) {
+                            setEditFull_Term(input);
+                        }
+
                         if (editingId == record.id)
                             editFull_Term.defaultValue = value || "";
                     }} />);
@@ -400,8 +470,10 @@ function Datatable() {
                 if (record.id == editingId) {
 
                     return (<EuiFieldText inputRef={input => {
-                        //editRemark = input;
-                        setEditRemark(input);
+                        if (input !== null) {
+                            setEditRemark(input);
+                        }
+
                         if (editingId == record.id)
                             editRemark.defaultValue = value || "";
                     }} />);
@@ -429,26 +501,35 @@ function Datatable() {
     ];
 
     return (
-
-        <div className="table">
-            <EuiSpacer size="xl" />
-            {addAcronymForm()}
-            <EuiSpacer size="xl" />
-            <EuiFieldSearch
-                placeholder="Search..."
-                fullWidth
-                isLoading={searchLoading}
-                onChange={(e) => onSearch(e)}
-            />
-            <EuiSpacer size="xl" />
-            <EuiBasicTable
-                items={acronyms}
-                columns={columns}
-                pagination={pagination}
-                onChange={onTableChange}
-                loading={searchLoading}
-            />
-        </div>
+        <EuiErrorBoundary>
+            <div className="table">
+                <EuiSpacer size="xl" />
+                {addAcronymForm()}
+                <EuiSpacer size="xl" />
+                <EuiFieldSearch
+                    placeholder="Search..."
+                    fullWidth
+                    isLoading={searchLoading}
+                    onChange={(e) => onSearch(e)}
+                />
+                <EuiSpacer size="xl" />
+                <EuiBasicTable
+                    items={acronyms}
+                    error={hasError}
+                    columns={columns}
+                    pagination={pagination}
+                    onChange={onTableChange}
+                    loading={searchLoading}
+                />
+                <EuiGlobalToastList
+                    toasts={toasts}
+                    toastLifeTimeMs={3000}
+                    dismissToast={(removedToast) => {
+                        setToasts(toasts.filter((toast) => toast.id !== removedToast.id));
+                    }}
+                />
+            </div>
+        </EuiErrorBoundary>
     );
 
 

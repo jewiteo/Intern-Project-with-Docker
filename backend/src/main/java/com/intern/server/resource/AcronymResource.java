@@ -16,21 +16,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+
 import com.intern.server.mapper.AcronymMapper;
-import com.intern.server.mapper.ChangesMapper;
 import com.intern.server.model.Acronym;
-import com.intern.server.model.Changes;
+
 
 @RestController
 @RequestMapping("/api/acronym")
 public class AcronymResource {
 	
 	private AcronymMapper acronymMapper;
-	private ChangesMapper changesMapper;
 	
-	public AcronymResource(AcronymMapper acronymMapper, ChangesMapper changesMapper) {
+	public AcronymResource(AcronymMapper acronymMapper) {
 		this.acronymMapper = acronymMapper;
-		this.changesMapper = changesMapper;
 	}
 	
 	@GetMapping("/all")
@@ -101,22 +99,6 @@ public class AcronymResource {
 	public void updateAcronym(@RequestBody Acronym acronym) {
 		this.acronymMapper.updateAcronym(acronym.getAcronym(),acronym.getFull_term(),acronym.getRemark(),acronym.getID());
 		System.out.print("\nAcronym where id = "+ acronym.getID()+" has been updated");
-	}
-	
-	@GetMapping("/changes/{id}")
-	public List<Changes> getChangesForRecord(@PathVariable Number id){
-		System.out.print(id);
-		return this.changesMapper.getChangesOfRecord(id);
-	}
-	
-	@PostMapping("/changes/new")
-	public void addChanges(@RequestBody Changes changes) {
-		this.changesMapper.addChanges(changes.getID(), changes.getChanges(), changes.getTimestamp());
-	}
-	
-	@DeleteMapping("/changes/{id}")
-	public void deleteChanges(@PathVariable Number id) {
-		this.changesMapper.remove(id);
 	}
 	
 

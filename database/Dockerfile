@@ -5,6 +5,7 @@ ENV \
   # The only environment variable that should be changed!
   ORACLE_PASSWORD=Oracle18 \
   EM_GLOBAL_ACCESS_YN=Y \
+  SQL_FILE=export.sql \
   # DO NOT CHANGE 
   ORACLE_DOCKER_INSTALL=true \
   ORACLE_SID=XE \
@@ -17,6 +18,7 @@ ENV \
   EM_RESTORE=reconfigureEm.sh \
   ORACLE_XE_RPM=oracle-database-xe-18c-1.0-1.x86_64.rpm \
   CHECK_DB_FILE=checkDBStatus.sh
+  
     
 COPY ./files/${ORACLE_XE_RPM} /tmp/
 
@@ -24,9 +26,11 @@ RUN yum install -y oracle-database-preinstall-18c && \
   yum install -y /tmp/${ORACLE_XE_RPM} && \
   rm -rf /tmp/${ORACLE_XE_RPM}
 
-COPY ./scripts/*.sh ${ORACLE_BASE}/scripts/
+COPY ./scripts/*sh ${ORACLE_BASE}/scripts/
+COPY ./scripts/sql/${SQL_FILE} ${ORACLE_BASE}/scripts/
 
 RUN chmod a+x ${ORACLE_BASE}/scripts/*.sh 
+RUN chmod a+x ${ORACLE_BASE}/scripts/*.sql
 
 # 1521: Oracle listener
 # 5500: Oracle Enterprise Manager (EM) Express listener.
@@ -38,3 +42,4 @@ HEALTHCHECK --interval=1m --start-period=2m --retries=10 \
   CMD "$ORACLE_BASE/scripts/$CHECK_DB_FILE"
 
 CMD exec ${ORACLE_BASE}/scripts/${RUN_FILE}
+

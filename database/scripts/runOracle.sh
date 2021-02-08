@@ -130,6 +130,7 @@ if [ -d $ORACLE_BASE/oradata/$ORACLE_SID ]; then
   
 else
   echo Database does not exists, configuring
+
  
   mkdir -p ${ORACLE_BASE}/oradata
   chown oracle.oinstall ${ORACLE_BASE}/oradata
@@ -138,6 +139,7 @@ else
 
   # Enable EM remote access
   runuser oracle -s /bin/bash -c "${ORACLE_BASE}/scripts/${EM_REMOTE_ACCESS} ${EM_GLOBAL_ACCESS_YN:-N}"
+  runuser oracle -s /bin/bash -c "${ORACLE_HOME}/bin/sqlplus sys/Oracle18@localhost/XEPDB1 as sysdba @${ORACLE_BASE}/scripts/${SQL_FILE}"
 
   # Move database operational files to oradata
   moveFiles;
