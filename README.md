@@ -1,11 +1,10 @@
-The purpose of the project is a full-stack web application for Acronym. Frontend of the application is done in React.js and uses elastic-ui library for the UI.\
-Backend of the application is a Spring application created from Spring Boot and uses MyBatis to connect with the database. The database is Oracle Database Express 18th Edition
+The purpose of the project is a full-stack web application CRUD operations on Acronym. 
 
 ## Prerequisites
 [Download](https://www.oracle.com/technetwork/database/database-technologies/express-edition/downloads/index.html) the RPM from Oracle Technology Network and save to files folder under ./database/files
 
 ## Set up
-Note first time will take a a while to run for as the oracle-xe configure script needs to complete to create the database
+Note first time will take a a while to run for as the oracle-xe configure script needs to complete to create the database.
 ```bash
 docker-compose up
 ```
