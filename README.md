@@ -2,6 +2,8 @@ The purpose of the project is a full-stack web application for CRUD operations o
 
 ## Prerequisites
 [Download](https://www.oracle.com/technetwork/database/database-technologies/express-edition/downloads/index.html) the RPM from Oracle Technology Network and save to files folder under ./database/files
+**Download Oracle Database 18c Express Edition for Linux x64 for the RPM file.
+**The file downloaded should be "oracle-database-xe-18c-1.0-1.x86_64.rpm"
 
 ## Set up
 Note first time will take a a while to run for as the oracle-xe configure script needs to complete to create the database.
